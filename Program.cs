@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
-using System.Xml.Linq;
 
 namespace Celebratus
 {
@@ -14,7 +14,66 @@ namespace Celebratus
 
             var tagContents = TagContents(rssFeedPageText, "content:encoded");
 
-            var cleanedTagContents = CleanTagContents(tagContents);
+            var texts = CleanTagContents(tagContents);
+
+            var frequentWordsByArticle = RankFrequentWordsByArticle(texts, 5);
+
+            ShowTopWordsByArticle(frequentWordsByArticle);
+
+            Console.ReadLine();
+        }
+
+        static void ShowTopWordsByArticle(List<Dictionary<string, int>> frequentWordsByArticle)
+        {
+            Console.WriteLine("######### Most Frequent Words By Article #########\n");
+            for (int i = 0; i < frequentWordsByArticle.Count(); i++)
+            {
+                Console.WriteLine($"..Article #{i}");
+                PrintTopWords(frequentWordsByArticle[i]);
+            }
+            Console.WriteLine("\n");
+        }
+
+        static void PrintTopWords(Dictionary<string, int> topWords)
+        {
+            foreach (var topWord in topWords)
+            {
+                Console.WriteLine($"....Word: {topWord.Key} - Frequency: {topWord.Value}");
+            }
+        }
+
+        static List<Dictionary<string, int>> RankFrequentWordsByArticle(List<string> texts, int frequentWordsNumber)
+        {
+            var result = new List<Dictionary<string, int>>();
+            foreach (var text in texts)
+            {
+                result.Add(RankFrequentWords(text, 5));
+            }
+
+            return result;
+        }
+
+        static Dictionary<string, int> RankFrequentWords(string text, int frequentWordsNumber)
+        {
+            var words = GetWords(text).Select(w => w.ToLower()).ToList();
+            var wordsAndFrequency = words.GroupBy(w => w).ToDictionary(w => w.Key, w => w.Count());
+            var wordsAndFrequencySorted = wordsAndFrequency.OrderByDescending(w => w.Value);
+            var topWordsByFrequency = wordsAndFrequencySorted.Take(frequentWordsNumber);
+
+            return topWordsByFrequency.ToDictionary(w => w.Key, w => w.Value);
+        }
+
+        static List<string> GetWords(string text)
+        {
+            var words = text.Split(' ').ToList();
+            words = RemoveEmptyWords(words);
+            return words;
+        }
+
+        static List<string> RemoveEmptyWords(List<string> words)
+        {
+            words.RemoveAll(w => w.Equals(""));
+            return words;
         }
 
         static List<string> CleanTagContents(List<string> tagContents)
@@ -27,15 +86,21 @@ namespace Celebratus
                 cleanedContent = RemoveTagsWithoutClosingTag(cleanedContent);
                 cleanedContent = RemoveTags(cleanedContent);
                 cleanedContent = RemovePunctuation(cleanedContent);
+                cleanedContent = RemoveCDATA(cleanedContent);
                 cleanedTagContents.Add(cleanedContent);
             }
 
             return cleanedTagContents;
         }
 
+        static string RemoveCDATA(string text)
+        {
+            return text.Replace("CDATA", "");
+        }
+
         static string RemovePunctuation(string text)
         {
-            var punctuations = new char[] { '!', '@', '#', '(', ')', '.', ',', ';', ':', '/', '\\', '?', '"', '|', '[', ']', '+', '=', '-', '<', '>' };
+            var punctuations = new char[] { '!', '@', '#', '(', ')', '.', ',', ';', ':', '/', '\\', '?', '"', '|', '[', ']', '+', '=', '-', '<', '>', '\n' };
 
             foreach (var punctuation in punctuations)
             {
@@ -82,6 +147,10 @@ namespace Celebratus
                 var startTag = '<' + tag;
 
                 var startOfTagIndex = text.IndexOf(startTag);
+
+                var isTagFound = startOfTagIndex != -1;
+                if (!isTagFound)
+                    break;
                 var endOfTagINdex = text.IndexOf('>', startOfTagIndex);
 
                 var count = endOfTagINdex - startOfTagIndex + 1;
