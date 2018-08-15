@@ -1,4 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Xml;
 
 namespace Celebratus
 {
@@ -27,11 +32,11 @@ namespace Celebratus
         {
             var rssFeedPageText = Requester.GetPage(webPageUrl);
 
-            var tagContents = Parser.TagContents(rssFeedPageText, tagContainingContent);
+            var tagContents = Parser.GetTagContents(rssFeedPageText, tagContainingContent);
 
-            var texts = Cleaner.CleanTagContents(tagContents);
+            var articles = Cleaner.CleanArticles(tagContents);
 
-            var frequentWordsByArticle = Selector.RankFrequentWordsByArticle(texts, numberOfTopWordsByArticle);
+            var frequentWordsByArticle = Selector.RankFrequentWordsByArticle(articles, numberOfTopWordsByArticle);
 
             Printer.ShowTopWordsByArticle(frequentWordsByArticle);
         }

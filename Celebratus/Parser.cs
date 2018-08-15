@@ -4,7 +4,7 @@ namespace Celebratus
 {
     public static class Parser
     {
-        public static List<string> TagContents(string page, string tag)
+        public static List<string> GetTagContents(string page, string tag)
         {
             var openningTag = MakeOpenningTag(tag);
             var closingTag = MakeClosingTag(tag);
@@ -13,8 +13,8 @@ namespace Celebratus
 
             while (page != null || page.Length > 0)
             {
-                var openingTagIndex = findFirstTagIndex(page, openningTag);
-                var closingTagIndex = findFirstTagIndex(page, closingTag);
+                var openingTagIndex = FindFirstTagIndex(page, openningTag);
+                var closingTagIndex = FindFirstTagIndex(page, closingTag);
 
                 var isTagFound = openingTagIndex != -1 && closingTagIndex != -1;
 
@@ -25,19 +25,20 @@ namespace Celebratus
 
                 tagContents.Add(tagContent);
 
-                page = RemovePassedText(page, closingTagIndex, closingTag);
+                page = RemovePassedText(page, closingTagIndex, closingTag.Length);
             }
             return tagContents;
         }
 
-        private static int findFirstTagIndex(string text, string tag)
+        private static int FindFirstTagIndex(string text, string tag)
         {
             return text.IndexOf(tag);
         }
 
-        private static string RemovePassedText(string text, int index, string closingTag)
+        private static string RemovePassedText(string text, int index, int closingTagLength)
         {
-            return text.Substring(index + closingTag.Length);
+            var cutIndex = index + closingTagLength;
+            return text.Substring(cutIndex);
         }
 
         private static string GetTagContent(string page, int startIndex, int endIndex)
